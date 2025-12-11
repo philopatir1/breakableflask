@@ -27,6 +27,7 @@ jobs:
            wget https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh
            chmod +x install.sh
            sudo ./install.sh
+           echo "$PWD/bin" >> $GITHUB_PATH
 
       - name: Scan du Dockerfile
         run: trivy config .
