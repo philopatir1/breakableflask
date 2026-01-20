@@ -1,5 +1,7 @@
 name: Automatisation des tests DevSecOps
+
 on: push
+
 jobs:
   Dependances:
     runs-on: ubuntu-latest
@@ -10,9 +12,17 @@ jobs:
       - name: Installer pip-audit
         run: pip install pip-audit
 
-      - name: Audit des dépendances
-        run: pip-audit -r requirements.txt
-        
+      - name: Audit des dépendances (rapport JSON)
+        run: |
+          mkdir -p reports
+          pip-audit -r requirements.txt -f json -o reports/pip-audit-report.json || true
+
+      - name: Upload dependency audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit-report
+          path: reports/pip-audit-report.json
+
   Dockerfile:
     runs-on: ubuntu-latest
     needs: Dependances
@@ -22,15 +32,24 @@ jobs:
 
       - name: Installer Trivy
         run: |
-           sudo apt-get update
-           sudo apt-get install -y wget
-           wget https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh
-           chmod +x install.sh
-           sudo ./install.sh
-           echo "$PWD/bin" >> $GITHUB_PATH
+          sudo apt-get update
+          sudo apt-get install -y wget
+          wget https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh
+          chmod +x install.sh
+          sudo ./install.sh
+          echo "$PWD/bin" >> $GITHUB_PATH
 
-      - name: Scan du Dockerfile
-        run: trivy config .
+      - name: Scan du Dockerfile (rapport JSON)
+        run: |
+          mkdir -p reports
+          trivy config . --format json --output reports/trivy-config-report.json || true
+
+      - name: Upload Trivy config report
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-config-report
+          path: reports/trivy-config-report.json
+
   Deploy:
     runs-on: ubuntu-latest
     needs: Dockerfile
